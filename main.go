@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	configPath := flag.String("config", "./config/config.json")
+	configPath := flag.String("config", "./config/config.json", "Path for the config json file")
 	flag.Parse()
 	// Set use storage, select [Postgres, Filesystem, Redis ...]
 	storage := &storages.Postgres{}
@@ -36,9 +36,6 @@ func main() {
 	http.Handle("/encode/", handlers.EncodeHandler(config.Options.Prefix, storage))
 	http.Handle("/", handlers.RedirectHandler(storage))
 	http.Handle("/info/", handlers.DecodeHandler(storage))
-
-	// Wait signal
-	close := make(chan bool, 1)
 
 	// Create a server
 	server := &http.Server{Addr: fmt.Sprintf("%s:%s", config.Server.Host, config.Server.Port)}
@@ -63,9 +60,8 @@ func main() {
 	// Start server
 	log.Printf("Starting HTTP Server. Listening at %q", server.Addr)
 	if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			log.Println(err.Error())
-		} else {
-			log.Println("Server closed!")
-		}
+		log.Println(err.Error())
+	} else {
+		log.Println("Server closed!")
 	}
 }

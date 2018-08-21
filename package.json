@@ -1,0 +1,24 @@
+{
+  "name": "factorymonitor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "gulpfile.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "gulp": "^3.8.11",
+    "gulp-livereload": "*",
+    "gulp-sass": "^4.0.1",
+    "gulp-shell": "^0.6.5",
+    "gulp-sync": "*",
+    "gulp-util": "*",
+    "node-notifier": "*"
+  },
+  "keywords": [
+    "golang",
+    "gulp"
+  ],
+  "author": "Ajinkya Borade",
+  "license": "ISC"
+}
