@@ -33,9 +33,7 @@ func main() {
 	defer storage.Close()
 
 	// Handlers
-	http.Handle("/encode/", handlers.EncodeHandler(config.Options.Prefix, storage))
-	http.Handle("/", handlers.RedirectHandler(storage))
-	http.Handle("/info/", handlers.DecodeHandler(storage))
+	http.Handle("/", handlers.New(config.Options.Prefix, storage))
 
 	// Create a server
 	server := &http.Server{Addr: fmt.Sprintf("%s:%s", config.Server.Host, config.Server.Port)}
