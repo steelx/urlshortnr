@@ -1,15 +1,14 @@
 {
-  "name": "factorymonitor",
+  "name": "urlShortnr",
   "version": "1.0.0",
   "description": "",
   "main": "gulpfile.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "go run main.go"
   },
   "devDependencies": {
     "gulp": "^3.8.11",
     "gulp-livereload": "*",
-    "gulp-sass": "^4.0.1",
     "gulp-shell": "^0.6.5",
     "gulp-sync": "*",
     "gulp-util": "*",
