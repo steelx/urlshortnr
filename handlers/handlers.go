@@ -43,6 +43,7 @@ func responseHandler(h func(w http.ResponseWriter, r *http.Request) (interface{}
 			data = err.Error()
 		}
 		w.WriteHeader(status)
+		w.Header().Set("Content-Type", "application/json")
 
 		err = json.NewEncoder(w).Encode(response{data, err == nil})
 		if err != nil {
@@ -57,8 +58,6 @@ func (h handler) EncodeHandler(w http.ResponseWriter, r *http.Request) (interfac
 	if r.Method != http.MethodPost {
 		return nil, http.StatusMethodNotAllowed, fmt.Errorf("method %v not allowed", r.Method)
 	}
-
-	w.Header().Set("Content-Type", "application/json")
 
 	var body struct{ URL string }
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -85,7 +84,6 @@ func (h handler) DecodeHandler(w http.ResponseWriter, r *http.Request) (interfac
 		return nil, http.StatusMethodNotAllowed, fmt.Errorf("method %v not allowed", r.Method)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	code := r.URL.Path[len("/info/"):]
 
 	model, err := h.storage.LoadInfo(code)
