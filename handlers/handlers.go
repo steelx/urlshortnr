@@ -42,8 +42,8 @@ func responseHandler(h func(w http.ResponseWriter, r *http.Request) (interface{}
 		if err != nil {
 			data = err.Error()
 		}
-		w.WriteHeader(status)
 		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
 
 		err = json.NewEncoder(w).Encode(response{data, err == nil})
 		if err != nil {
