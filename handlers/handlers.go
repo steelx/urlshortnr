@@ -3,6 +3,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -10,8 +11,8 @@ import (
 )
 
 type response struct {
-	Success bool        `json:"success"`
 	Data    interface{} `json:"response"`
+	Success bool        `json:"success"`
 }
 
 func enableCors(w *http.ResponseWriter) {
@@ -23,9 +24,9 @@ func New(prefix string, storage storages.IFStorage) http.Handler {
 	mux := http.NewServeMux()
 	h := handler{prefix, storage}
 
-	mux.HandleFunc("/encode/", h.EncodeHandler)
+	mux.HandleFunc("/encode/", responseHandler(h.EncodeHandler))
+	mux.HandleFunc("/info/", responseHandler(h.DecodeHandler))
 	mux.HandleFunc("/", h.RedirectHandler)
-	mux.HandleFunc("/info/", h.DecodeHandler)
 
 	return mux
 }
@@ -35,51 +36,53 @@ type handler struct {
 	storage storages.IFStorage
 }
 
-func (h handler) EncodeHandler(w http.ResponseWriter, r *http.Request) {
+func responseHandler(h func(w http.ResponseWriter, r *http.Request) (interface{}, int, error)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		data, status, err := h(w, r)
+		if err != nil {
+			data = err.Error()
+		}
+		w.WriteHeader(status)
+
+		err = json.NewEncoder(w).Encode(response{data, err == nil})
+		if err != nil {
+			fmt.Printf("Could not encode response: %v", err)
+		}
+	}
+}
+
+func (h handler) EncodeHandler(w http.ResponseWriter, r *http.Request) (interface{}, int, error) {
 	enableCors(&w)
 
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
+		return nil, http.StatusMethodNotAllowed, fmt.Errorf("method %v not allowed", r.Method)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 
-	var b struct{ URL string }
-
-	if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		e := response{Data: "Unable to decode JSON request body: " + err.Error(), Success: false}
-		createResponse(w, e)
-		return
+	var body struct{ URL string }
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		return nil, http.StatusBadRequest, fmt.Errorf("Unable to decode JSON request body: %v", err.Error())
 	}
 
-	b.URL = strings.TrimSpace(b.URL)
+	URL := strings.TrimSpace(body.URL)
 
-	if b.URL == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		e := response{Data: "URL is Empty", Success: false}
-		createResponse(w, e)
-		return
+	if URL == "" {
+		return nil, http.StatusBadRequest, fmt.Errorf("URL is Empty")
 	}
 
-	c, err := h.storage.Save(b.URL)
+	c, err := h.storage.Save(URL)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		e := response{Data: err.Error(), Success: false}
-		createResponse(w, e)
-		return
+		return nil, http.StatusBadRequest, fmt.Errorf("Could not store in database: %v", err.Error())
 	}
 
-	response := response{Data: h.prefix + c, Success: true}
-	createResponse(w, response)
+	return h.prefix + c, http.StatusCreated, nil
 }
 
-func (h handler) DecodeHandler(w http.ResponseWriter, r *http.Request) {
+func (h handler) DecodeHandler(w http.ResponseWriter, r *http.Request) (interface{}, int, error) {
 
 	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
+		return nil, http.StatusMethodNotAllowed, fmt.Errorf("method %v not allowed", r.Method)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -87,14 +90,10 @@ func (h handler) DecodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	model, err := h.storage.LoadInfo(code)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		e := response{Data: "URL Not Found", Success: false}
-		createResponse(w, e)
-		return
+		return nil, http.StatusNotFound, fmt.Errorf("URL Not Found")
 	}
 
-	response := response{Data: model, Success: true}
-	createResponse(w, response)
+	return model, http.StatusOK, nil
 }
 
 func (h handler) RedirectHandler(w http.ResponseWriter, r *http.Request) {
